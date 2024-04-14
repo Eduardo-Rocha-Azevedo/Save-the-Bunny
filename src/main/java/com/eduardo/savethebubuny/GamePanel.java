@@ -17,35 +17,43 @@ import android.view.View;
 
 import androidx.core.content.res.ResourcesCompat;
 
+import com.eduardo.savethebubuny.entity.Spike;
+
 import java.util.ArrayList;
 import java.util.Random;
 
 public class GamePanel extends View {
-
-    Bitmap background, ground, rabbit;
-    Rect rectBackground, rectGround;
-    Context context;
-    Handler handler;
-    final long UPDATE_MILLIS = 30; // Corrigido o nome da variável UPDATE_MILIS para UPDATE_MILLIS
-    Runnable runnable;
-    Paint textPaint = new Paint();
-    Paint healthPaint = new Paint();
-    float textSize = 120; // Renomeada a variável text_size para textSize para seguir as convenções de nomenclatura
-    int points = 0;
-    int life = 3;
-    public int dWidth, dHeight;
-    Random random;
-    float rabbitX, rabbitY;
-    float oldX, oldRabbitX;
-    ArrayList<Spike> spikes;
-    ArrayList<Explosion> explosions;
+    private boolean isHeartFalling = false;
+    private Bitmap background;
+    private Bitmap ground;
+    public Bitmap player;
+    private Bitmap heart;
+    private Rect rectBackground, rectGround;
+    private Context context;
+    private Handler handler;
+    private final long UPDATE_MILLIS = 30;
+    private Runnable runnable;
+    private Paint textPaint = new Paint();
+    private Paint healthPaint = new Paint();
+    private float textSize = 120;
+    private int points = 0;
+    private int life = 8;
+    public int dWidth;
+    int dHeight;
+    private Random random;
+    private float rabbitX, rabbitY;
+    private float oldX, oldRabbitX;
+    private ArrayList<Spike> spikes;
+    private ArrayList<Explosion> explosions;
+    private ArrayList<Heart> hearts;
 
     public GamePanel(Context context) {
         super(context);
         this.context = context;
         background = BitmapFactory.decodeResource(getResources(), R.drawable.background);
         ground = BitmapFactory.decodeResource(getResources(), R.drawable.ground);
-        rabbit = BitmapFactory.decodeResource(getResources(), R.drawable.rabbit);
+        player = BitmapFactory.decodeResource(getResources(), R.drawable.rabbit);
+        heart = BitmapFactory.decodeResource(getResources(), R.drawable.heart_full);
         Display display = ((Activity) getContext()).getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
@@ -53,7 +61,29 @@ public class GamePanel extends View {
         dHeight = size.y;
         rectBackground = new Rect(0, 0, dWidth, dHeight);
         rectGround = new Rect(0, dHeight - ground.getHeight(), dWidth, dHeight);
+
         handler = new Handler();
+        random = new Random();
+        rabbitX = (float) dWidth / 2 - player.getWidth();
+        rabbitY = dHeight - ground.getHeight() - player.getHeight();
+
+        spikes = new ArrayList<>();
+        explosions = new ArrayList<>();
+        hearts = new ArrayList<>();
+
+        for (int i = 0; i < 3; i++) {
+            Spike spike = new Spike(context, this);
+            spikes.add(spike);
+        }
+
+        // Inicializa o texto e a pintura de saúde
+        textPaint.setColor(Color.rgb(255, 165, 0));
+        textPaint.setTextSize(textSize);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTypeface(ResourcesCompat.getFont(context, R.font.x12y16pxmarumonica));
+        healthPaint.setColor(Color.GREEN);
+
+        // Inicializa o loop de atualização
         runnable = new Runnable() {
             @Override
             public void run() {
@@ -61,33 +91,24 @@ public class GamePanel extends View {
             }
         };
 
-        textPaint.setColor(Color.rgb(255, 165, 0));
-        textPaint.setTextSize(textSize);
-        textPaint.setTextAlign(Paint.Align.CENTER);
-        textPaint.setTypeface(ResourcesCompat.getFont(context, R.font.x12y16pxmarumonica));
-        healthPaint.setColor(Color.GREEN);
-        random = new Random();
-        rabbitX = (float) dWidth / 2 - rabbit.getWidth();
-        rabbitY = dHeight - ground.getHeight() - rabbit.getHeight();
-        spikes = new ArrayList<>();
-        explosions = new ArrayList<>();
-
-        for (int i = 0; i < 3; i++) {
-            Spike spike = new Spike(context, GamePanel.this);
-            spikes.add(spike);
-        }
+        // Inicia o processo de geração de corações periodicamente
+        spawnHeartsPeriodically();
     }
 
     @Override
-    protected void onDraw(Canvas cv) {
-        super.onDraw(cv);
-        cv.drawBitmap(background, null, rectBackground, null);
-        cv.drawBitmap(ground, null, rectGround, null);
-        cv.drawBitmap(rabbit, rabbitX, rabbitY, null);
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
 
-        for (int i = 0; i < spikes.size(); i++) {
-            Spike spike = spikes.get(i);
-            cv.drawBitmap(spike.getSpike(spike.spikeFrame), spike.spikeX, spike.spikeY, null);
+        // Desenha o fundo e o chão
+        canvas.drawBitmap(background, null, rectBackground, null);
+        canvas.drawBitmap(ground, null, rectGround, null);
+
+        // Desenha o jogador
+        canvas.drawBitmap(player, rabbitX, rabbitY, null);
+
+        // Desenha os spikes e verifica colisões
+        for (Spike spike : spikes) {
+            canvas.drawBitmap(spike.getSpike(spike.spikeFrame), spike.spikeX, spike.spikeY, null);
             spike.spikeFrame++;
 
             if (spike.spikeFrame > 2) {
@@ -100,47 +121,71 @@ public class GamePanel extends View {
                 explosion.explosionX = spike.spikeX;
                 explosion.explosionY = spike.spikeY;
                 explosions.add(explosion);
-                spike.resetPosition();
+                spike.resetPosition(spike);
             }
         }
 
-        // Collision
-        // Collision
-        for(int i = 0; i < spikes.size(); i++){
-            if(spikes.get(i).spikeX + spikes.get(i).getSpikeWidth() >= rabbitX
-                    && spikes.get(i).spikeX <= rabbitX + rabbit.getWidth()
-                    && spikes.get(i).spikeY + spikes.get(i).getSpikeWidth() >= rabbitY
-                    && spikes.get(i).spikeY + spikes.get(i).getSpikeWidth() <= rabbitY + rabbit.getHeight()){
+        // Desenha e atualiza a posição dos corações
+        for (Heart heart : hearts) {
+            canvas.drawBitmap(heart.getHeart(heart.heartFrame), heart.getHeartX(), heart.getHeartY(), null);
+            heart.heartY += heart.heartVelocity; // Atualiza a posição do coração
+            if (heart.heartY >= dHeight) { // Verifica se o coração caiu fora da tela
+                heart.resetPosition(); // Reposiciona o coração
+            }
+            if (heart.getHeartX() + heart.getHeartWidth() >= rabbitX
+                    && heart.getHeartX() <= rabbitX + player.getWidth()
+                    && heart.heartY + heart.getHeartHeight() >= rabbitY
+                    && heart.heartY <= rabbitY + player.getHeight()) {
+                life++; // Aumenta a vida
+                heart.resetPosition(); // Reposiciona o coração
+            }
+        }
 
+        // Verifica colisões com os spikes
+        for (Spike spike : spikes) {
+            if (spike.spikeX + spike.getSpikeWidth() >= rabbitX
+                    && spike.spikeX <= rabbitX + player.getWidth()
+                    && spike.spikeY + spike.getSpikeWidth() >= rabbitY
+                    && spike.spikeY + spike.getSpikeWidth() <= rabbitY + player.getHeight()) {
                 life--;
-                spikes.get(i).resetPosition();
-                if(life <= 0) {
-                    Intent intent = new Intent(context,GameOver.class);
-                    intent .putExtra("Points", points);
+                spike.resetPosition();
+                if (life <= 0) {
+                    Intent intent = new Intent(context, GameOver.class);
+                    intent.putExtra("Points", points);
                     context.startActivity(intent);
-                    ((Activity)context).finish();
+                    ((Activity) context).finish();
                 }
             }
         }
 
+        // Desenha as explosões e remove as antigas
         for (int i = 0; i < explosions.size(); i++) {
             Explosion explosion = explosions.get(i);
-            cv.drawBitmap(explosion.getExplosion(explosion.explosionFrame), explosion.explosionX, explosion.explosionY, null);
+            canvas.drawBitmap(explosion.getExplosion(explosion.explosionFrame), explosion.explosionX, explosion.explosionY, null);
             explosion.explosionFrame++;
             if (explosion.explosionFrame > 3) {
                 explosions.remove(i);
             }
         }
 
+        // Atualiza a cor da barra de vida com base na quantidade de vida restante
         if (life == 2) {
             healthPaint.setColor(Color.YELLOW);
         } else if (life == 1) {
             healthPaint.setColor(Color.RED);
         }
-        cv.drawRect(dWidth - 200, 30, dWidth - 200 + 60 * life, 80, healthPaint);
-        cv.drawText("" + points, 20, textSize, textPaint);
+
+        // Desenha a barra de vida
+        canvas.drawRect(dWidth - 200, 30, dWidth - 200 + 60 * life, 80, healthPaint);
+
+        // Desenha a pontuação
+        canvas.drawText("" + points, 30, textSize, textPaint);
+
+        // Programa a próxima atualização
         handler.postDelayed(runnable, UPDATE_MILLIS);
     }
+
+
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -159,12 +204,42 @@ public class GamePanel extends View {
 
                 if (newRabbitX <= 0)
                     rabbitX = 0;
-                else if (newRabbitX >= dWidth - rabbit.getWidth())
-                    rabbitX = dWidth - rabbit.getWidth();
+                else if (newRabbitX >= dWidth - player.getWidth())
+                    rabbitX = dWidth - player.getWidth();
                 else
                     rabbitX = newRabbitX;
             }
         }
         return true;
+    }
+
+    // Método para criar um novo coração e adicioná-lo à lista
+    private void spawnHeart() {
+        if (!isHeartFalling) {
+            Heart heart = new Heart(context, this);
+            hearts.add(heart);
+            isHeartFalling = true; // Ativa a queda de corações
+        }
+    }
+
+    // Método para gerar corações periodicamente
+    private void spawnHeartsPeriodically() {
+        // Define um intervalo de tempo em milissegundos para gerar corações (por exemplo, a cada 5 segundos)
+        long heartSpawnInterval = 20000;
+
+        // Cria um novo Runnable para gerar corações periodicamente
+        Runnable heartSpawner = new Runnable() {
+            @Override
+            public void run() {
+                // Gera um novo coração e o adiciona à lista
+                spawnHeart();
+
+                // Programa a próxima chamada deste Runnable após o intervalo de tempo especificado
+                handler.postDelayed(this, heartSpawnInterval);
+            }
+        };
+
+        // Inicia o processo de geração de corações
+        handler.postDelayed(heartSpawner, heartSpawnInterval);
     }
 }

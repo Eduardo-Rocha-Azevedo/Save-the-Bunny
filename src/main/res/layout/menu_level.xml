@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+
+    android:background="@drawable/background">
+
+    <!-- Título -->
+
+    <!-- Lista de Fases -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="375dp"
+        android:layout_marginTop="16dp"
+        android:background="#D89023"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+
+        <!-- Fase 1 (Desbloqueada) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp
+    "
+            android:background="#BB1D1D"
+            android:fontFamily="@font/x12y16pxmarumonica"
+            android:padding="15dp"
+
+            android:text="Seletor de Fase"
+            android:textColor="#fff"
+            android:textSize="30sp" />
+
+        <!-- Fase 2 (Bloqueada) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_locked"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="Fase Bloqueada"
+                android:src="@drawable/ic_locked" />
+        </LinearLayout>
+
+        <!-- Fase 3 (Bloqueada) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="47dp"
+            android:background="@drawable/bg_unlocked"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <TextView
+                android:layout_width="84dp"
+                android:layout_height="47dp"
+                android:layout_weight="10sp"
+                android:fontFamily="@font/x12y16pxmarumonica"
+                android:text="Fase 1"
+                android:textColor="#fff"
+                android:textSize="30dp" />
+
+            <TextView
+                android:layout_width="84dp"
+                android:layout_height="47dp"
+                android:layout_weight="10sp"
+                android:fontFamily="@font/x12y16pxmarumonica"
+                android:text="Fase 2"
+                android:textColor="#fff"
+                android:textSize="30dp" />
+
+            <TextView
+                android:layout_width="84dp"
+                android:layout_height="47dp"
+                android:layout_weight="10sp"
+                android:fontFamily="@font/x12y16pxmarumonica"
+                android:text="Fase 3"
+                android:textColor="#fff"
+                android:textSize="30dp" />
+
+            <TextView
+                android:layout_width="84dp"
+                android:layout_height="47dp"
+                android:layout_weight="10sp"
+                android:fontFamily="@font/x12y16pxmarumonica"
+                android:text="Fase 4"
+                android:textColor="#fff"
+                android:textSize="30dp" />
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="Fase Desbloqueada"
+
+                android:src="@drawable/ic_unlocked" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_locked"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="Fase Bloqueada"
+                android:src="@drawable/ic_locked" />
+        </LinearLayout>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <!-- E assim por diante... -->
+    </LinearLayout>
+
+</LinearLayout>
